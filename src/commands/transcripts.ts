@@ -66,6 +66,7 @@ const FORMATS: readonly TranscriptFormat[] = [
   'hermes',
   'grok',
   'chatgpt',
+  'amp-export',
   'claude-export',
 ];
 
@@ -210,7 +211,7 @@ skip). Embedding is OFF by default; run the embed backfill later or opt in.
                     (recorded by Claude Code for the provider's scratch cwds;
                     excluded by default to avoid a self-ingestion loop)
   --format F        claude-code | codex | openclaw | hermes | grok |
-                    chatgpt | claude-export (auto-detected when omitted)
+                    chatgpt | claude-export | amp-export (auto-detected when omitted)
   --dry-run         Parse + redact + report; writes nothing
   --limit N         Max sessions this run
   --since T         Only sessions newer than ISO time T; the word "last"

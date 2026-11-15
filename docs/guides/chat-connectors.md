@@ -11,6 +11,21 @@ Live providers: **ChatGPT** and **Claude**. Perplexity has no live
 connector yet (no transcript adapter) — use the conversation-archive manual
 conversion for it.
 
+## Coding-agent exports
+
+Claude Code and Codex session JSONL files use the native `claude-code` and
+`codex` adapters. Amp threads use `amp threads export <thread-id>` to produce a
+JSON file, then `gbrain transcripts ingest <file.json> --format amp-export`.
+The Amp adapter retains visible user/assistant text and source timestamps;
+hidden context, tool traffic, reasoning and compaction summaries are omitted.
+Missing text timestamps and oversized exports fail rather than inventing or
+silently truncating evidence. Amp exports are explicit-path inputs, not part
+of `--all` discovery. `--format` selects a parser, not discovery roots.
+
+Imports share redaction and content-hash deduplication. They archive what was
+said, not proof that a tool action succeeded. Embedding and synthesis are
+separate operations; see “Feed imported conversations to Dream” below.
+
 ## Quick start
 
 **Say to your agent:** *"Connect my chatgpt account and pull my whole history into

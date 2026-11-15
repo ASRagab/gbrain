@@ -31,6 +31,7 @@ export type TranscriptFormat =
   | 'hermes'
   | 'grok'
   | 'chatgpt'
+  | 'amp-export'
   | 'claude-export';
 
 export interface TranscriptMessage {
@@ -132,6 +133,7 @@ const SLUG_DIRS: Record<TranscriptFormat, string> = {
   hermes: 'conversations/sessions',
   grok: 'conversations/sessions',
   chatgpt: 'conversations/chatgpt',
+  'amp-export': 'conversations/sessions',
   'claude-export': 'conversations/claude',
 };
 
@@ -141,6 +143,7 @@ const HARNESS_FORMATS: ReadonlySet<TranscriptFormat> = new Set([
   'openclaw',
   'hermes',
   'grok',
+  'amp-export',
 ]);
 
 /**

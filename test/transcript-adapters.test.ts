@@ -47,6 +47,7 @@ import {
 } from '../src/core/transcripts/grok.ts';
 import { chatgptExportAdapter } from '../src/core/transcripts/chatgpt-export.ts';
 import { claudeExportAdapter } from '../src/core/transcripts/claude-export.ts';
+import { ampAdapter } from '../src/core/transcripts/amp.ts';
 import { buildHermesFixture } from './fixtures/transcripts/hermes-fixture-builder.ts';
 import { discoverTranscriptFiles, buildStatusRows } from '../src/core/transcripts/discover.ts';
 import { redactSession } from '../src/core/transcripts/render.ts';
@@ -317,6 +318,16 @@ describe('claudeCodeAdapter', () => {
 // ── Codex adapter [structural turn selection, never preamble heuristics] ────
 
 describe('codexAdapter', () => {
+  test('header-only rollouts are empty, but unknown events still flag potential drift', async () => {
+    const path = join(tdir(), 'not-started.jsonl');
+    const header = JSON.stringify({ type: 'session_meta', payload: { id: 'empty-session' } });
+    writeFileSync(path, header + '\n');
+    const empty = await drain(codexAdapter.parse(path));
+    expect(empty.sessions).toEqual([]);
+    expect(empty.diag.expectedEmpty).toBe(true);
+    writeFileSync(path, header + '\n' + JSON.stringify({ type: 'future_message', payload: {} }));
+    expect((await drain(codexAdapter.parse(path))).diag.expectedEmpty).toBe(false);
+  });
   // Regression: an oversized rollout used to throw and contribute NOTHING.
   // It now degrades to a bounded head+tail read like the claude-code adapter.
   // HEAD is load-bearing: `session_meta` — session_id, cwd, provenance — is the
@@ -1126,5 +1137,38 @@ describe('detection matrix', () => {
       expect(r.ok).toBe(true);
       if (r.ok) expect(r.adapter.format).toBe(format);
     }
+  });
+});
+
+describe('Amp thread exports', () => {
+  test('imports visible text and source identity without hidden memory or tool traffic', async () => {
+    const path = join(tdir(), 'thread.json');
+    const thread = { id: 'T-12345678-abcd', created: 1794744000000, messages: [
+      { role: 'user', createdAt: '2026-11-15T12:00:01Z', content: [
+        { type: 'text', text: 'Choose the durable queue.' },
+        { type: 'text', hidden: true, text: 'Recalled stale memory' },
+        { type: 'tool_result', run: { output: 'private tool output' } },
+      ] },
+      { role: 'assistant', createdAt: '2026-11-15T12:00:02Z', content: [
+        { type: 'thinking', thinking: 'private reasoning' },
+        { type: 'text', text: 'Selected because retries must survive restarts.' },
+      ] },
+      { role: 'info', content: [{ type: 'summary', summary: 'duplicate history' }] },
+    ] };
+    writeFileSync(path, JSON.stringify(thread));
+    const detection = detectAdapter(path);
+    expect(detection.ok && detection.adapter.format).toBe('amp-export');
+    const { sessions, diag } = await drain(ampAdapter.parse(path));
+    expect(sessions[0].messages).toEqual([
+      { role: 'user', timestamp: '2026-11-15T12:00:01.000Z', text: 'Choose the durable queue.' },
+      { role: 'assistant', timestamp: '2026-11-15T12:00:02.000Z', text: 'Selected because retries must survive restarts.' },
+    ]);
+    expect(sessions[0].meta.sessionId).toBe(thread.id);
+    expect(diag.userTurnsMissing).toBe(false);
+    expect(JSON.stringify(sessions)).not.toContain('private');
+    await expect(drain(ampAdapter.parse(path, { maxBytes: 2 }))).rejects.toThrow('byte cap');
+    thread.messages[0].createdAt = '';
+    writeFileSync(path, JSON.stringify(thread));
+    await expect(drain(ampAdapter.parse(path))).rejects.toThrow('source timestamp');
   });
 });

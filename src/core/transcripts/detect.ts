@@ -25,6 +25,7 @@ import { hermesAdapter } from './hermes.ts';
 import { grokAdapter } from './grok.ts';
 import { chatgptExportAdapter } from './chatgpt-export.ts';
 import { claudeExportAdapter } from './claude-export.ts';
+import { ampAdapter } from './amp.ts';
 
 // ── Harness discovery roots (discovery mode only) ───────────────────────────
 
@@ -80,6 +81,7 @@ export function transcriptAdapters(): TranscriptAdapter[] {
     codexAdapter,
     claudeCodeAdapter,
     grokAdapter,
+    ampAdapter,
     claudeExportAdapter,
     chatgptExportAdapter,
   ];

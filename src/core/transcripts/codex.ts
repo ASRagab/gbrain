@@ -240,6 +240,7 @@ export const codexAdapter: TranscriptAdapter = {
     let cwd: string | undefined;
     let startedAt = '';
     let subagent = false;
+    let headersOnly = true;
     const messages: TranscriptMessage[] = [];
     let rawMeta: Record<string, unknown> | undefined;
 
@@ -271,6 +272,7 @@ export const codexAdapter: TranscriptAdapter = {
         };
         continue;
       }
+      headersOnly = false;
       if (mapped.kind === 'user' && isRepeatedCodexUserTurn(messages.at(-1), mapped.message.text)) continue;
       if (mapped.kind === 'user' || mapped.kind === 'assistant') {
         messages.push(mapped.message);
@@ -302,6 +304,7 @@ export const codexAdapter: TranscriptAdapter = {
       skippedLines,
       truncated,
       sessions,
+      expectedEmpty: !!rawMeta && headersOnly && skippedLines === 0 && !truncated,
       zeroSessionsReason:
         sessions === 0 ? 'no user turns (user_message or item_completed UserMessage) or assistant message items in rollout' : undefined,
       userTurnsMissing: userless && !subagent ? true : undefined,
